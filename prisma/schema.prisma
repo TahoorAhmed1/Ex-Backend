@@ -1,0 +1,187 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model admins {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @db.DateTime(0)
+  updatedAt DateTime @updatedAt @db.Timestamp(0)
+}
+
+model podcasts {
+  id          Int      @id @default(autoincrement())
+  title       String   @db.VarChar(250)
+  picture     String?  @db.VarChar(250)
+  description String   @db.Text
+  duration    Int
+  url         String   @db.VarChar(500)
+  createdAt   DateTime @default(now()) @db.DateTime(0)
+  updatedAt   DateTime @updatedAt @db.Timestamp(0)
+}
+
+model blogs {
+  id          Int         @id @default(autoincrement())
+  title       String      @db.VarChar(250)
+  picture     String?     @db.VarChar(250)
+  description String      @db.VarChar(1000)
+  content     String      @db.Text
+  views       Int         @default(0)
+  readingTime Int
+  createdAt   DateTime    @default(now()) @db.DateTime(0)
+  updatedAt   DateTime    @updatedAt @db.Timestamp(0)
+  tags        blog_tags[]
+}
+
+model blog_tags {
+  id     Int    @id @default(autoincrement())
+  blogId Int?
+  tagId  Int?
+  blog   blogs? @relation(fields: [blogId], references: [id])
+  tag    tags?  @relation(fields: [tagId], references: [id])
+}
+
+model tags {
+  id        Int         @id @default(autoincrement())
+  name      String
+  blog_tags blog_tags[]
+}
+
+model books {
+  id                Int                 @id @default(autoincrement())
+  title             String              @db.VarChar(250)
+  picture           String?             @db.VarChar(250)
+  description       String              @db.VarChar(1000)
+  type              BOOK_TYPES          @default(PHYSICAL_BOOK)
+  price             Float
+  preview_url       String?
+  active            Boolean             @default(true)
+  createdAt         DateTime            @default(now()) @db.DateTime(0)
+  updatedAt         DateTime            @updatedAt @db.Timestamp(0)
+  order_books       order_books[]
+  book_download_url book_download_urls?
+}
+
+model book_download_urls {
+  id           Int     @id @default(autoincrement())
+  bookId       Int     @unique
+  download_url String?
+  book         books   @relation(fields: [bookId], references: [id])
+}
+
+model merchandises {
+  id                 Int                    @id @default(autoincrement())
+  category_id        Int
+  title              String
+  description        String
+  price              Float
+  active             Boolean                @default(true)
+  category           categories?            @relation(fields: [category_id], references: [id])
+  sizes              merchandise_sizes[]
+  pictures           merchandise_pictures[]
+  order_merchandises order_merchandises[]
+}
+
+model merchandise_pictures {
+  id             Int           @id @default(autoincrement())
+  merchandise_id Int
+  url            String
+  merchandise    merchandises? @relation(fields: [merchandise_id], references: [id], onDelete: Cascade)
+}
+
+model merchandise_sizes {
+  id             Int           @id @default(autoincrement())
+  merchandise_id Int
+  size_id        Int
+  merchandise    merchandises? @relation(fields: [merchandise_id], references: [id], onDelete: Cascade)
+  size           sizes?        @relation(fields: [size_id], references: [id])
+}
+
+model sizes {
+  id                 Int                  @id @default(autoincrement())
+  code               String
+  name               String
+  merchandise_sizes  merchandise_sizes[]
+  order_merchandises order_merchandises[]
+}
+
+model categories {
+  id           Int            @id @default(autoincrement())
+  name         String
+  merchandises merchandises[]
+}
+
+model contact_messages {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String
+  message   String
+  createdAt DateTime @default(now()) @db.DateTime(0)
+}
+
+model orders {
+  id             Int          @id @default(autoincrement())
+  customer_id    Int?
+  secret_id      String       @unique
+  sub_total      Float
+  shipping_cost  Float
+  discount       Float        @default(0)
+  total_amount   Float
+  fulfilled      Boolean      @default(false)
+  payment_status Boolean      @default(false)
+  createdAt      DateTime     @default(now()) @db.DateTime(0)
+  updatedAt      DateTime     @updatedAt @db.Timestamp(0)
+  customer       customers?   @relation(fields: [customer_id], references: [id])
+  items          order_items?
+}
+
+model customers {
+  id           Int      @id @default(autoincrement())
+  email        String
+  first_name   String
+  last_name    String
+  phone_number String
+  address      String
+  orders       orders[]
+}
+
+model order_items {
+  id           Int                  @id @default(autoincrement())
+  order_id     Int?                 @unique
+  books        order_books[]
+  merchandises order_merchandises[]
+  order        orders?              @relation(fields: [order_id], references: [id])
+}
+
+model order_merchandises {
+  id             Int           @id @default(autoincrement())
+  order_id       Int?
+  merchandise_id Int
+  size_id        Int
+  quantity       Int
+  order          order_items?  @relation(fields: [order_id], references: [id])
+  merchandise    merchandises? @relation(fields: [merchandise_id], references: [id])
+  size           sizes?        @relation(fields: [size_id], references: [id])
+}
+
+model order_books {
+  id       Int          @id @default(autoincrement())
+  order_id Int?
+  book_id  Int
+  quantity Int
+  order    order_items? @relation(fields: [order_id], references: [id])
+  book     books?       @relation(fields: [book_id], references: [id])
+}
+
+enum BOOK_TYPES {
+  PHYSICAL_BOOK
+  E_BOOK
+  AUDIO_BOOK
+}
